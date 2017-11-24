@@ -1,5 +1,9 @@
 var GMapsUrl = 'https://maps.googleapis.com/maps/api/js/GeoPhotoService.SingleImageSearch';
 
+function log(message, type) {
+    console[typeof type !== 'undefined' ? type: 'log']('Geoguessr cheater: ' + message);
+}
+
 function executeCode(scriptContent) {
     var script = document.createElement('script');
     script.id = 'tmpScript';
@@ -29,10 +33,8 @@ document.addEventListener("load", function(event)
             var cd1 = data[1][5][0][1][0][2];
             var cd2 = data[1][5][0][1][0][3];
             executeCode(`
-                var CMap = new google.maps.Map($('.game-usps')[0], {zoom: 3,center: {lat: ` + cd1 + `, lng: ` + cd2 + `}});
+                var CMap = new google.maps.Map(document.getElementsByClassName('game-usps')[0], {zoom: 3,center: {lat: ` + cd1 + `, lng: ` + cd2 + `}});
                 new google.maps.Marker({position: {lat:` + cd1 + `, lng: ` + cd2 + `}, map: CMap});
-                console.log(this);
-                console.log(CMap);
             `);
             /*chrome.runtime.sendMessage({cd1: cd1, cd2: cd2}, function(response) {
                 $('.account-status__sign-out').html(response.data.results[0].formatted_address);
