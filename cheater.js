@@ -20,6 +20,11 @@ function isScript(event)
 
 document.addEventListener("load", function(event)
 {
+    executeCode(`
+        if (typeof window.MapConstructor === 'undefined' && typeof google !== 'undefined' && typeof google.maps !== 'undefined' && typeof google.maps.Map !== 'undefined')
+            window.MapConstructor = google.maps.Map;
+    `);
+
   if (isScript(event))
   {
     var url = event.path[0].src;
@@ -33,7 +38,7 @@ document.addEventListener("load", function(event)
             var cd1 = data[1][5][0][1][0][2];
             var cd2 = data[1][5][0][1][0][3];
             executeCode(`
-                var CMap = new google.maps.Map(document.getElementsByClassName('game-usps')[0], {zoom: 3,center: {lat: ` + cd1 + `, lng: ` + cd2 + `}});
+                var CMap = new MapConstructor(document.getElementsByClassName('game-usps')[0], {zoom: 3,center: {lat: ` + cd1 + `, lng: ` + cd2 + `}});
                 new google.maps.Marker({position: {lat:` + cd1 + `, lng: ` + cd2 + `}, map: CMap});
             `);
             /*chrome.runtime.sendMessage({cd1: cd1, cd2: cd2}, function(response) {
