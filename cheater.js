@@ -1,50 +1,38 @@
-var GMapsUrl = 'https://maps.googleapis.com/maps/api/js/GeoPhotoService.SingleImageSearch';
-
-function log(message, type) {
-    console[typeof type !== 'undefined' ? type: 'log']('Geoguessr cheater: ' + message);
-}
-
-function executeCode(scriptContent) {
+function executeCode(func) {
     var script = document.createElement('script');
     script.id = 'tmpScript';
-    script.appendChild(document.createTextNode(scriptContent));
+    script.appendChild(document.createTextNode(`(${func.toString()})()`));
     (document.body || document.head || document.documentElement).appendChild(script);
 }
 
-function isScript(event)
-{
-  if (event.path.length && event.path[0].type === 'text/javascript')
-      return true;
-  return false;
-}
-
-document.addEventListener("load", function(event)
-{
-    executeCode(`
-        if (typeof window.MapConstructor === 'undefined' && typeof google !== 'undefined' && typeof google.maps !== 'undefined' && typeof google.maps.Map !== 'undefined')
-            window.MapConstructor = google.maps.Map;
-    `);
-
-  if (isScript(event))
-  {
-    var url = event.path[0].src;
-    if (url.substring(0, GMapsUrl.length) === GMapsUrl)
-    {
-        chrome.runtime.sendMessage({url: url}, function(response) {
-            var data = response.data;
-            var realDataStart = data.indexOf('[');
-            var realData = data.substr(realDataStart, data.lastIndexOf(']') - realDataStart + 1);
-            var data = JSON.parse(realData);
-            var cd1 = data[1][5][0][1][0][2];
-            var cd2 = data[1][5][0][1][0][3];
-            executeCode(`
-                var CMap = new MapConstructor(document.getElementsByClassName('game-usps')[0], {zoom: 3,center: {lat: ` + cd1 + `, lng: ` + cd2 + `}});
-                new google.maps.Marker({position: {lat:` + cd1 + `, lng: ` + cd2 + `}, map: CMap});
-            `);
-            /*chrome.runtime.sendMessage({cd1: cd1, cd2: cd2}, function(response) {
-                $('.account-status__sign-out').html(response.data.results[0].formatted_address);
-            });*/
-        });
+executeCode(function () {
+    function cheaterLog(message, type) {
+        console[typeof type !== 'undefined' ? type : 'log']('%cGeoguessr cheater\t%c' + message, 'color:blue', 'color:black');
     }
-  }
-}, true);
+
+    /*** intercept Google Maps API ***/
+    if (typeof window.MapConstructor === 'undefined' && typeof google !== 'undefined' && typeof google.maps !== 'undefined' && typeof google.maps.Map !== 'undefined')
+        window.MapConstructor = google.maps.Map;
+
+    /*** intercept game information ***/
+    const callback = function () {
+        try {
+            const gameDetails = JSON.parse(this.response);
+            const roundDetails = gameDetails.rounds[gameDetails.round - 1];
+            const latitude = roundDetails.lat;
+            const longitude = roundDetails.lng;
+            try {
+                cheaterLog(`Round: ${gameDetails.round}\tLatitude: ${latitude}\tLongitude: ${longitude}`, 'info');
+                var CMap = new MapConstructor(document.getElementsByClassName('game-usps')[0], { zoom: 3, center: { lat: latitude, lng: longitude } });
+                new google.maps.Marker({ position: { lat: latitude, lng: longitude }, map: CMap });
+            } catch (e) {
+                console.error('Geoguessr cheater error:', e);
+            }
+        } catch (e) { }
+    }
+    var originalOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function () {
+        this.addEventListener('load', callback);
+        originalOpen.apply(this, arguments);
+    };
+});
