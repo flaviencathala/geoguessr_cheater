@@ -3,14 +3,10 @@
   "name": "GeoGuessr cheater",
   "description": "GeoGuessr cheater",
   "author": "Flavien Cathala <flavien.cathala@gmail.com>",
-  "version": "1.3",
+  "version": "2.0",
   "browser_action": {
     "default_icon": "icon.png",
-    "default_popup": "popup.html",
     "default_title": "GeoGuessr cheater"
-  },
-  "background": {
-    "scripts": ["background.js"]
   },
   "content_scripts": [
     {

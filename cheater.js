@@ -5,34 +5,50 @@ function executeCode(func) {
     (document.body || document.head || document.documentElement).appendChild(script);
 }
 
-executeCode(function () {
+executeCode(() => {
     function cheaterLog(message, type) {
         console[typeof type !== 'undefined' ? type : 'log']('%cGeoguessr cheater\t%c' + message, 'color:blue', 'color:black');
     }
 
-    /*** intercept Google Maps API ***/
-    if (typeof window.MapConstructor === 'undefined' && typeof google !== 'undefined' && typeof google.maps !== 'undefined' && typeof google.maps.Map !== 'undefined')
-        window.MapConstructor = google.maps.Map;
+    const coordinates = {};
 
     /*** intercept game information ***/
-    const callback = function () {
+    const markerProtoOverloaded = false;
+    const callbackLoad = function () {
         try {
             const gameDetails = JSON.parse(this.response);
             const roundDetails = gameDetails.rounds[gameDetails.round - 1];
-            const latitude = roundDetails.lat;
-            const longitude = roundDetails.lng;
+            coordinates.lat = roundDetails.lat;
+            coordinates.lng = roundDetails.lng;
             try {
-                cheaterLog(`Round: ${gameDetails.round}\tLatitude: ${latitude}\tLongitude: ${longitude}`, 'info');
-                var CMap = new MapConstructor(document.getElementsByClassName('game-usps')[0], { zoom: 3, center: { lat: latitude, lng: longitude } });
-                new google.maps.Marker({ position: { lat: latitude, lng: longitude }, map: CMap });
+                cheaterLog(`Info found:\tRound: ${gameDetails.round}\tLatitude: ${coordinates.lat}\tLongitude: ${coordinates.lng}`, 'info');
+                if (!markerProtoOverloaded) {
+                    var originalsetLngLat = mapboxgl.Marker.prototype.setLngLat;
+                    mapboxgl.Marker.prototype.setLngLat = function () {
+                        return originalsetLngLat.apply(this, [coordinates]);
+                    };
+                    markerOverloaded = true;
+                }
             } catch (e) {
-                console.error('Geoguessr cheater error:', e);
+                cheaterLog(e, 'error');
             }
         } catch (e) { }
     }
     var originalOpen = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function () {
-        this.addEventListener('load', callback);
-        originalOpen.apply(this, arguments);
+        this.addEventListener('load', callbackLoad);
+        return originalOpen.apply(this, arguments);
+    };
+    /*** send correct game information ***/
+    var originalSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function () {
+        try {
+            const potentialCoordinates = JSON.parse(arguments[0]);
+            if (potentialCoordinates && potentialCoordinates.lat && potentialCoordinates.lng) {
+                arguments[0] = JSON.stringify({ ...potentialCoordinates, ...coordinates });
+                cheaterLog(`Sending info:\tLatitude: ${coordinates.lat}\tLongitude: ${coordinates.lng}`, 'info');
+            }
+        } catch (e) { }
+        return originalSend.apply(this, arguments);
     };
 });
